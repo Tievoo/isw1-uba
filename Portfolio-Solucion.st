@@ -350,102 +350,155 @@ TestCase subclass: #ReportTest
 	poolDictionaries: ''
 	category: 'Portfolio-Solucion'!
 
-!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 19:44:28'!
+!ReportTest methodsFor: 'tests' stamp: 'T 11/1/2024 16:47:18'!
 test00EmptyAccountEmptySummary
-	| account |
+	| account summary |
 	
-	account := ReceptiveAccount new.
-	
-	self assert: (account accountSummary at:1) equals: ('Balance = 0')! !
+	account := ReceptiveAccount new.	summary := (AccountSummary for:account) generate.
 
-!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 03:36:48'!
+	self assert: (summary at: 1) equals: ('Balance = 0')! !
+
+!ReportTest methodsFor: 'tests' stamp: 'T 11/1/2024 16:48:20'!
 test01AccountSummaryReadsDeposits
-	| account |
+
+	| account summary|
 	
 	account := ReceptiveAccount new.
 	
 	Deposit register: 100 on: account .
 	
-	self assert: (account accountSummary includes: 'Depósito por 100')! !
+	summary := (AccountSummary for: account) generate .
+	
+	self assert: (summary includes: 'Depósito por 100')! !
 
-!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 03:38:54'!
+!ReportTest methodsFor: 'tests' stamp: 'T 11/1/2024 16:49:03'!
 test02AccountSummaryReadsWithdraws
-	| account |
+
+	| account summary |
 	
 	account := ReceptiveAccount new.
 	
 	Withdraw register: 100 on: account .
 	
-	self assert: (account accountSummary includes: 'Extracción por 100')! !
+	summary := (AccountSummary for: account) generate .
+	
+	self assert: (summary includes: 'Extracción por 100')! !
 
-!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 03:41:11'!
+!ReportTest methodsFor: 'tests' stamp: 'T 11/1/2024 16:50:18'!
 test03AccountSummaryReadsTransfers
 
-	| account1 account2 |
+	| account1 account2 summary1 summary2 |
 	
 	account1 := ReceptiveAccount new.
 	account2 := ReceptiveAccount new.
 	
 	Transfer of: 100 extractFrom: account1 depositTo: account2 .
+	summary1 := (AccountSummary for: account1) generate .
+	summary2 := (AccountSummary for: account2) generate .
 	
-	self assert: (account1 accountSummary includes: 'Salida por transferencia de 100').
-	self assert: (account2 accountSummary includes: 'Entrada por transferencia de 100')! !
+	self assert: (summary1 includes: 'Salida por transferencia de 100').
+	self assert: (summary2 includes: 'Entrada por transferencia de 100')! !
 
-!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 19:44:58'!
+!ReportTest methodsFor: 'tests' stamp: 'T 11/1/2024 16:51:37'!
 test04AccountSummaryReadsEverything
 
-	| account1 account2 res |
-	
-	account1 := ReceptiveAccount new.
-	account2 := ReceptiveAccount new.
-	
-	Transfer of: 100 extractFrom: account1 depositTo: account2 .
-	Deposit  register: 150 on: account1 .
-	Withdraw register: 40 on: account1 .
-	
-	res := OrderedCollection with: 'Salida por transferencia de 100' with: 'Depósito por 150' with: 'Extracción por 40' with: 'Balance = 10'.
-	
-	self assert: (account1 accountSummary = res).
-	! !
-
-!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 19:55:50'!
-test05EmptyAccountEmptyNet
-	| account |
+	| account summary res |
 	
 	account := ReceptiveAccount new.
 	
-	self assert: (account transferNet) equals: 0! !
+	Transfer of: 100 extractFrom: account depositTo: (ReceptiveAccount new) .
+	Deposit  register: 150 on: account .
+	Withdraw register: 40 on: account .
+	
+	summary := (AccountSummary for: account) generate .
+	
+	res := OrderedCollection with: 'Salida por transferencia de 100' with: 'Depósito por 150' with: 'Extracción por 40' with: 'Balance = 10'.
+	
+	self assert: (summary = res).
+	! !
 
-!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 19:57:13'!
+!ReportTest methodsFor: 'tests' stamp: 'T 11/1/2024 17:03:12'!
+test05EmptyAccountEmptyNet
+
+	| net |
+	
+	net := (TransferNet for: (ReceptiveAccount new)) generate.
+	
+	
+	self assert: (net) equals: 0! !
+
+!ReportTest methodsFor: 'tests' stamp: 'T 11/1/2024 17:04:47'!
 test06TransferNetReadsDepositLegs
-	| account |
+	| account net |
 	
 	account := ReceptiveAccount new.
 	
 	Transfer of: 100 extractFrom: (ReceptiveAccount new) depositTo: account.
 	
-	self assert: (account transferNet) equals: 100! !
+	net := (TransferNet for: account) generate.
+	
+	self assert: (net) equals: 100! !
 
-!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 19:59:29'!
+!ReportTest methodsFor: 'tests' stamp: 'T 11/1/2024 17:05:25'!
 test07TransferNetReadsExtractLegs
-	| account |
+
+	| account net |
 	
 	account := ReceptiveAccount new.
 	
 	Transfer of: 100 extractFrom: account depositTo: (ReceptiveAccount new).
+	net := (TransferNet for: account) generate.
 	
-	self assert: (account transferNet) equals: -100! !
+	self assert: (net) equals: -100! !
 
-!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 20:02:13'!
+!ReportTest methodsFor: 'tests' stamp: 'T 11/1/2024 17:17:15'!
 test08TransferNetReadsBothThings
-	| account |
+
+	| account net |
 	
 	account := ReceptiveAccount new.
 	
 	Transfer of: 100 extractFrom: account depositTo: (ReceptiveAccount new).
 	Transfer of: 200 extractFrom: (ReceptiveAccount new) depositTo: account.
 	
-	self assert: (account transferNet) equals: 100! !
+	net := (TransferNet for: account) generate.
+	
+	self assert: (net) equals: 100! !
+
+!ReportTest methodsFor: 'tests' stamp: 'T 11/1/2024 17:19:50'!
+test09TransferNetReadsIgnoresDepositsAndWithdraws
+
+	| account net |
+	
+	account := ReceptiveAccount new.
+	
+	Transfer of: 100 extractFrom: account depositTo: (ReceptiveAccount new).
+	Transfer of: 200 extractFrom: (ReceptiveAccount new) depositTo: account.
+	
+	Deposit register: 300 on: account.
+	Withdraw register: 31 on: account. 
+	
+	net := (TransferNet for: account) generate.
+	
+	self assert: (net) equals: 100! !
+
+!ReportTest methodsFor: 'tests' stamp: 'T 11/1/2024 17:37:18'!
+test10AccountSummaryWorksOnPortfolios
+	| portfolio account1 account2 res summary |
+	
+	res := OrderedCollection with: 'Depósito por 100' with: 'Extracción por 100' with: 'Balance = 0'.
+	
+	account1 := ReceptiveAccount new.
+	account2 := ReceptiveAccount new.
+	
+	Deposit register: 100 on: account1 .
+	Withdraw register: 100 on: account2.
+	
+	portfolio := Portfolio with: account1 with: account2.
+	
+	summary := (AccountSummary for: portfolio) generate.
+	
+	self assert: summary equals: res! !
 
 
 !classDefinition: #AccountTransaction category: #'Portfolio-Solucion'!
@@ -454,6 +507,11 @@ Object subclass: #AccountTransaction
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Portfolio-Solucion'!
+
+!AccountTransaction methodsFor: 'operate' stamp: 'T 11/1/2024 16:35:13'!
+operate: aReportGenerator
+
+	self subclassResponsibility! !
 
 
 !AccountTransaction methodsFor: 'balance' stamp: 'HAW 5/25/2019 11:25:39'!
@@ -502,6 +560,12 @@ initializeFor: aValue
 
 	value := aValue ! !
 
+
+!Deposit methodsFor: 'operate' stamp: 'T 11/1/2024 16:35:34'!
+operate: aReportGenerator
+	aReportGenerator operateOnDeposit: self.
+	 ! !
+
 "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- "!
 
 !classDefinition: 'Deposit class' category: #'Portfolio-Solucion'!
@@ -542,6 +606,12 @@ value
 initializeWithTransfer: aTransfer
 	transfer := aTransfer .! !
 
+
+!Leg methodsFor: 'operate' stamp: 'T 11/1/2024 16:35:18'!
+operate: aReportGenerator
+
+	self subclassResponsibility! !
+
 "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- "!
 
 !classDefinition: 'Leg class' category: #'Portfolio-Solucion'!
@@ -575,6 +645,12 @@ findOppositeLeg
 affectBalance: aBalance
 	^aBalance + self value.! !
 
+
+!DepositLeg methodsFor: 'operate' stamp: 'T 11/1/2024 16:36:32'!
+operate: aReportGenerator
+	aReportGenerator operateOnDepositLeg: self.
+	 ! !
+
 
 !classDefinition: #ExtractLeg category: #'Portfolio-Solucion'!
 Leg subclass: #ExtractLeg
@@ -592,6 +668,12 @@ findOppositeLeg
 affectBalance: aBalance
 	^aBalance - self value.
 	! !
+
+
+!ExtractLeg methodsFor: 'operate' stamp: 'T 11/1/2024 16:36:26'!
+operate: aReportGenerator
+	aReportGenerator operateOnExtractLeg: self.
+	 ! !
 
 
 !classDefinition: #Withdraw category: #'Portfolio-Solucion'!
@@ -616,6 +698,12 @@ affectBalance: aBalance
 initializeFor: aValue
 
 	value := aValue ! !
+
+
+!Withdraw methodsFor: 'operate' stamp: 'T 11/1/2024 16:35:48'!
+operate: aReportGenerator
+	aReportGenerator operateOnWithdraw: self.
+	 ! !
 
 "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- "!
 
@@ -662,6 +750,12 @@ addTransactionsTo: aCollectionOfTransactions
 transactions
 
 	self subclassResponsibility ! !
+
+
+!FinancialAsset methodsFor: 'operate' stamp: 'T 11/1/2024 16:32:02'!
+operateOnTransactions: aReportGenerator
+
+	self subclassResponsibility! !
 
 
 !FinancialAsset methodsFor: 'composition' stamp: 'HAW 5/25/2019 12:24:04'!
@@ -781,6 +875,12 @@ signalCanNotAddAccount
 	
 	self error: self class canNotAddAccountErrorMessage! !
 
+
+!Portfolio methodsFor: 'operate' stamp: 'T 11/1/2024 16:34:27'!
+operateOnTransactions: aReportGenerator
+	assets do: [ :anAsset | anAsset operateOnTransactions: aReportGenerator ]
+	! !
+
 "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- "!
 
 !classDefinition: 'Portfolio class' category: #'Portfolio-Solucion'!
@@ -888,6 +988,148 @@ transferNet
 addedTo: aPortfolio 
 	
 	! !
+
+
+!ReceptiveAccount methodsFor: 'operate' stamp: 'T 11/1/2024 16:33:18'!
+operateOnTransactions: aReportGenerator
+	^transactions do: [ :aTransaction | aTransaction operate: aReportGenerator ].
+	! !
+
+
+!classDefinition: #TransactionReport category: #'Portfolio-Solucion'!
+Object subclass: #TransactionReport
+	instanceVariableNames: 'financialAsset'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Portfolio-Solucion'!
+
+!TransactionReport methodsFor: 'initialization' stamp: 'T 11/1/2024 16:47:03'!
+initializeFor: aFinancialAsset
+
+	financialAsset := aFinancialAsset .! !
+
+
+!TransactionReport methodsFor: 'report' stamp: 'T 11/1/2024 16:38:41'!
+generate
+
+	self subclassResponsibility! !
+
+
+!TransactionReport methodsFor: 'operations' stamp: 'T 11/1/2024 16:28:23'!
+operateOnDeposit: aDeposit
+
+	self subclassResponsibility! !
+
+!TransactionReport methodsFor: 'operations' stamp: 'T 11/1/2024 16:28:27'!
+operateOnDepositLeg: aDepositLeg
+
+	self subclassResponsibility! !
+
+!TransactionReport methodsFor: 'operations' stamp: 'T 11/1/2024 16:28:31'!
+operateOnExtractLeg: aExtractLeg
+
+	self subclassResponsibility! !
+
+!TransactionReport methodsFor: 'operations' stamp: 'T 11/1/2024 16:28:34'!
+operateOnWithdraw: aWithdraw
+
+	self subclassResponsibility! !
+
+"-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- "!
+
+!classDefinition: 'TransactionReport class' category: #'Portfolio-Solucion'!
+TransactionReport class
+	instanceVariableNames: ''!
+
+!TransactionReport class methodsFor: 'instance creation' stamp: 'T 11/1/2024 16:28:50'!
+for: aFinancialAsset
+	  ^self new initializeFor: aFinancialAsset .! !
+
+
+!classDefinition: #AccountSummary category: #'Portfolio-Solucion'!
+TransactionReport subclass: #AccountSummary
+	instanceVariableNames: 'summary'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Portfolio-Solucion'!
+
+!AccountSummary methodsFor: 'summary' stamp: 'T 11/1/2024 16:42:31'!
+stringOnBalance
+	^'Balance = ', financialAsset balance asString.! !
+
+!AccountSummary methodsFor: 'summary' stamp: 'T 11/1/2024 16:43:16'!
+stringOnDeposit: aDeposit
+	^'Depósito por ', aDeposit value asString! !
+
+!AccountSummary methodsFor: 'summary' stamp: 'T 11/1/2024 16:43:59'!
+stringOnDepositLeg: aDepositLeg
+	^'Entrada por transferencia de ', aDepositLeg value asString! !
+
+!AccountSummary methodsFor: 'summary' stamp: 'T 11/1/2024 16:44:10'!
+stringOnExtractLeg: anExtractLeg
+	^'Salida por transferencia de ', anExtractLeg value asString! !
+
+!AccountSummary methodsFor: 'summary' stamp: 'T 11/1/2024 16:43:42'!
+stringOnWithdraw: aWithdraw
+	^'Extracción por ', aWithdraw value asString! !
+
+
+!AccountSummary methodsFor: 'operations' stamp: 'T 11/1/2024 16:40:40'!
+operateOnDeposit: aDeposit
+	summary add: (self stringOnDeposit: aDeposit ).! !
+
+!AccountSummary methodsFor: 'operations' stamp: 'T 11/1/2024 16:40:51'!
+operateOnDepositLeg: aDepositLeg
+	summary add: (self stringOnDepositLeg: aDepositLeg ).! !
+
+!AccountSummary methodsFor: 'operations' stamp: 'T 11/1/2024 16:41:06'!
+operateOnExtractLeg: anExtractLeg
+	summary add: (self stringOnExtractLeg: anExtractLeg ).! !
+
+!AccountSummary methodsFor: 'operations' stamp: 'T 11/1/2024 16:41:22'!
+operateOnWithdraw: aWithdraw
+	summary add: (self stringOnWithdraw: aWithdraw ).! !
+
+
+!AccountSummary methodsFor: 'report' stamp: 'T 11/1/2024 16:40:19'!
+generate
+	summary := OrderedCollection new.
+	financialAsset operateOnTransactions: self.
+	summary add: (self stringOnBalance ).
+	^summary! !
+
+
+!classDefinition: #TransferNet category: #'Portfolio-Solucion'!
+TransactionReport subclass: #TransferNet
+	instanceVariableNames: 'balance'
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Portfolio-Solucion'!
+
+!TransferNet methodsFor: 'operations' stamp: 'T 11/1/2024 17:38:29'!
+operateOnDeposit: aDeposit
+	" Does nothing "
+	^balance.! !
+
+!TransferNet methodsFor: 'operations' stamp: 'T 11/1/2024 17:01:55'!
+operateOnDepositLeg: aDepositLeg
+	balance := aDepositLeg affectBalance: balance! !
+
+!TransferNet methodsFor: 'operations' stamp: 'T 11/1/2024 17:01:50'!
+operateOnExtractLeg: aExtractLeg
+	balance := aExtractLeg affectBalance: balance! !
+
+!TransferNet methodsFor: 'operations' stamp: 'T 11/1/2024 17:38:36'!
+operateOnWithdraw: aWithdraw
+	" Does nothing "
+	^balance.! !
+
+
+!TransferNet methodsFor: 'report' stamp: 'T 11/1/2024 17:03:37'!
+generate
+	balance := 0.
+	financialAsset operateOnTransactions: self.
+	^balance.! !
 
 
 !classDefinition: #Transfer category: #'Portfolio-Solucion'!
