@@ -350,6 +350,14 @@ TestCase subclass: #ReportTest
 	poolDictionaries: ''
 	category: 'Portfolio-Solucion'!
 
+!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 19:44:28'!
+test00EmptyAccountEmptySummary
+	| account |
+	
+	account := ReceptiveAccount new.
+	
+	self assert: (account accountSummary at:1) equals: ('Balance = 0')! !
+
 !ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 03:36:48'!
 test01AccountSummaryReadsDeposits
 	| account |
@@ -383,7 +391,7 @@ test03AccountSummaryReadsTransfers
 	self assert: (account1 accountSummary includes: 'Salida por transferencia de 100').
 	self assert: (account2 accountSummary includes: 'Entrada por transferencia de 100')! !
 
-!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 03:46:14'!
+!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 19:44:58'!
 test04AccountSummaryReadsEverything
 
 	| account1 account2 res |
@@ -395,35 +403,63 @@ test04AccountSummaryReadsEverything
 	Deposit  register: 150 on: account1 .
 	Withdraw register: 40 on: account1 .
 	
-	res := OrderedCollection with: 'Salida por transferencia de 100' with: 'Depósito por 150' with: 'Extracción por 40'.
+	res := OrderedCollection with: 'Salida por transferencia de 100' with: 'Depósito por 150' with: 'Extracción por 40' with: 'Balance = 10'.
 	
 	self assert: (account1 accountSummary = res).
 	! !
 
+!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 19:55:50'!
+test05EmptyAccountEmptyNet
+	| account |
+	
+	account := ReceptiveAccount new.
+	
+	self assert: (account transferNet) equals: 0! !
+
+!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 19:57:13'!
+test06TransferNetReadsDepositLegs
+	| account |
+	
+	account := ReceptiveAccount new.
+	
+	Transfer of: 100 extractFrom: (ReceptiveAccount new) depositTo: account.
+	
+	self assert: (account transferNet) equals: 100! !
+
+!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 19:59:29'!
+test07TransferNetReadsExtractLegs
+	| account |
+	
+	account := ReceptiveAccount new.
+	
+	Transfer of: 100 extractFrom: account depositTo: (ReceptiveAccount new).
+	
+	self assert: (account transferNet) equals: -100! !
+
+!ReportTest methodsFor: 'tests' stamp: 'T 10/29/2024 20:02:13'!
+test08TransferNetReadsBothThings
+	| account |
+	
+	account := ReceptiveAccount new.
+	
+	Transfer of: 100 extractFrom: account depositTo: (ReceptiveAccount new).
+	Transfer of: 200 extractFrom: (ReceptiveAccount new) depositTo: account.
+	
+	self assert: (account transferNet) equals: 100! !
+
 
 !classDefinition: #AccountTransaction category: #'Portfolio-Solucion'!
 Object subclass: #AccountTransaction
-	instanceVariableNames: 'value'
+	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Portfolio-Solucion'!
-
-!AccountTransaction methodsFor: 'value' stamp: 'T 10/29/2024 02:57:17'!
-value
-
-	^ value! !
 
 
 !AccountTransaction methodsFor: 'balance' stamp: 'HAW 5/25/2019 11:25:39'!
 affectBalance: aBalance
 
 	self subclassResponsibility ! !
-
-
-!AccountTransaction methodsFor: 'initialization' stamp: 'T 10/29/2024 03:04:54'!
-initializeFor: aValue
-
-	value := aValue ! !
 
 "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- "!
 
@@ -444,16 +480,27 @@ register: aValue on: account
 
 !classDefinition: #Deposit category: #'Portfolio-Solucion'!
 AccountTransaction subclass: #Deposit
-	instanceVariableNames: ''
+	instanceVariableNames: 'value'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Portfolio-Solucion'!
-
 
 !Deposit methodsFor: 'balance' stamp: 'HAW 5/25/2019 11:25:02'!
 affectBalance: aBalance
 
 	^aBalance + value ! !
+
+
+!Deposit methodsFor: 'value' stamp: 'T 10/29/2024 19:51:12'!
+value
+
+	^ value! !
+
+
+!Deposit methodsFor: 'initialization' stamp: 'T 10/29/2024 19:53:05'!
+initializeFor: aValue
+
+	value := aValue ! !
 
 "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- "!
 
@@ -486,9 +533,13 @@ affectBalance: aBalance
 	self subclassResponsibility! !
 
 
-!Leg methodsFor: 'initialization' stamp: 'T 10/29/2024 03:07:33'!
-initializeFor: aValue inTransfer: aTransfer
-	self initializeFor: aValue.
+!Leg methodsFor: 'value' stamp: 'T 10/29/2024 19:48:10'!
+value
+	^transfer value.! !
+
+
+!Leg methodsFor: 'initialization' stamp: 'T 10/29/2024 19:49:55'!
+initializeWithTransfer: aTransfer
 	transfer := aTransfer .! !
 
 "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- "!
@@ -497,12 +548,12 @@ initializeFor: aValue inTransfer: aTransfer
 Leg class
 	instanceVariableNames: ''!
 
-!Leg class methodsFor: 'instance creation' stamp: 'T 10/29/2024 03:09:27'!
-register: aValue on: account withTransfer: aTransfer
+!Leg class methodsFor: 'instance creation' stamp: 'T 10/29/2024 19:49:19'!
+on: account withTransfer: aTransfer
 
 	| leg |
 	
-	leg := self new initializeFor: aValue inTransfer: aTransfer.
+	leg := self new initializeWithTransfer: aTransfer.
 	account register: leg.
 		
 	^leg! !
@@ -520,9 +571,9 @@ findOppositeLeg
 	^transfer extractLeg.! !
 
 
-!DepositLeg methodsFor: 'balance' stamp: 'T 10/29/2024 03:21:07'!
+!DepositLeg methodsFor: 'balance' stamp: 'T 10/29/2024 20:03:33'!
 affectBalance: aBalance
-	^aBalance + value.! !
+	^aBalance + self value.! !
 
 
 !classDefinition: #ExtractLeg category: #'Portfolio-Solucion'!
@@ -537,24 +588,34 @@ findOppositeLeg
 	^transfer depositLeg .! !
 
 
-!ExtractLeg methodsFor: 'balance' stamp: 'T 10/29/2024 03:21:20'!
+!ExtractLeg methodsFor: 'balance' stamp: 'T 10/29/2024 20:03:38'!
 affectBalance: aBalance
-	^aBalance - value.
+	^aBalance - self value.
 	! !
 
 
 !classDefinition: #Withdraw category: #'Portfolio-Solucion'!
 AccountTransaction subclass: #Withdraw
-	instanceVariableNames: ''
+	instanceVariableNames: 'value'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Portfolio-Solucion'!
+
+!Withdraw methodsFor: 'value' stamp: 'T 10/29/2024 19:51:30'!
+value
+	^value.! !
 
 
 !Withdraw methodsFor: 'balance' stamp: 'HAW 5/25/2019 11:25:15'!
 affectBalance: aBalance
 
 	^aBalance - value! !
+
+
+!Withdraw methodsFor: 'initialization' stamp: 'T 10/29/2024 19:53:13'!
+initializeFor: aValue
+
+	value := aValue ! !
 
 "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- "!
 
@@ -798,7 +859,7 @@ isComposedBy: anAccount
 	^self = anAccount ! !
 
 
-!ReceptiveAccount methodsFor: 'reports' stamp: 'T 10/29/2024 03:43:43'!
+!ReceptiveAccount methodsFor: 'reports' stamp: 'T 10/29/2024 19:43:55'!
 accountSummary
 	| summary  message |
 	summary := OrderedCollection new.
@@ -809,11 +870,18 @@ accountSummary
 		(aTransaction class = ExtractLeg) ifTrue: [message := 'Salida por transferencia de ', (aTransaction value asString)].
 		summary add: message .
 	].
-
+	summary add: ('Balance = ', self balance asString).
 	^summary.! !
 
-!ReceptiveAccount methodsFor: 'reports' stamp: 'T 10/29/2024 03:28:56'!
-transferNet! !
+!ReceptiveAccount methodsFor: 'reports' stamp: 'T 10/29/2024 20:00:48'!
+transferNet
+	| total |
+	total := 0.
+	transactions do: [ :aTransaction |
+		total := aTransaction affectBalance: total.
+	].
+
+	^total.! !
 
 
 !ReceptiveAccount methodsFor: 'composition' stamp: 'HAW 5/25/2019 12:03:32'!
@@ -824,7 +892,7 @@ addedTo: aPortfolio
 
 !classDefinition: #Transfer category: #'Portfolio-Solucion'!
 Object subclass: #Transfer
-	instanceVariableNames: 'extractLeg depositLeg'
+	instanceVariableNames: 'extractLeg depositLeg value'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'Portfolio-Solucion'!
@@ -838,10 +906,16 @@ extractLeg
 	^extractLeg.! !
 
 
-!Transfer methodsFor: 'initialization' stamp: 'T 10/29/2024 03:10:21'!
+!Transfer methodsFor: 'value' stamp: 'T 10/29/2024 19:48:26'!
+value
+	^value.! !
+
+
+!Transfer methodsFor: 'initialization' stamp: 'T 10/29/2024 19:50:21'!
 initializeOf: anAmount extractFrom: accountToExtractFrom depositTo: accountToDepositTo
-	extractLeg := ExtractLeg register: anAmount on: accountToExtractFrom  withTransfer: self.
-	depositLeg := DepositLeg register: anAmount on: accountToDepositTo  withTransfer: self.! !
+	extractLeg := ExtractLeg on: accountToExtractFrom  withTransfer: self.
+	depositLeg := DepositLeg on: accountToDepositTo  withTransfer: self.
+	value := anAmount.! !
 
 "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- "!
 
